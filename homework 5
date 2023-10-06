@@ -1,47 +1,63 @@
-Homework 5
-GROUP: Mishal, Loius and Vanessa
-load("~/Desktop/R-studio/acs2017_ny (2)/acs2017_ny_data.RData")
-require(tidyverse)
-require(AER)
-install.packages('stargazer')
-require(stargazer)
-installed.packages()
+---
+title: "Lab 4 - HW 5 Econometrics"
+author: Mishal Nawaz, Luis Melo,Vanessa Crowe,
 
-#filter/clean the data to certain factors
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Regression Modeling by Wages in R
+
+For this lab we will be looking into people at prime age in the labor force who work fulltime, year round according to NYs ACS data from 2017. We will call this subset "data_use"
+
+```{r}
+load("~/Desktop/Econometrics R Projects/acs2017_ny_data.RData")
 use_varb <- (acs2017_ny$AGE >= 25) & (acs2017_ny$AGE <= 55) & (acs2017_ny$LABFORCE == 2) & (acs2017_ny$WKSWORK2 > 4) & (acs2017_ny$UHRSWORK >= 35)
 dat_use <- subset(acs2017_ny,use_varb)
 summary(dat_use)
+```
 
-#factors that affect what you earn...salary earned in a year, regress on those values; tilde predictor variables
-#add degfield 
-model_temp1 <- lm(INCWAGE ~ AGE + female + AfAm + Asian + Amindian + race_oth + Hispanic + educ_hs + educ_somecoll + educ_college + educ_advdeg, data = dat_use)
-summary(model_temp1)
+We then model this subset into a Linear regression of Income Wage against Age with additional arguments of race and education
 
-# maybe get fancy, looks nicer
-#sum of var 1 vs var 2/3 (income ~ age/female/AfAm) is the predicted summary/income
+```{r}
+model_temp1 <- lm(INCWAGE ~ AGE + AfAm + Asian + Amindian + race_oth + Hispanic + educ_hs + educ_somecoll + educ_college + educ_advdeg, data = dat_use)
+
 require(stargazer)
 stargazer(model_temp1, type = "text")
+```
+The above shows that almost all races have a significant relationship to income as age increases. With all races but Asian's having a negative correlation
+However, income is showing to increase significantly as the level of education increases 
 
-model_temp2 <- lm(INCWAGE ~ DEGFIELD + female)
-#in nuclear, radiology, biologicalfield have the highest impact on income while women have a negative correlation
+Below we are now creating a random subset of the data in Income and selecting 10% of these observations. It will create a cleaner visualization when plotted. 
 
-# subset in order to plot...
+We are creating a scatter plot with a jitter affect of 1 to give "noise" to the income values at each age so we can see less overlapping of data values. 
+
+There were also a set of outliers with significantly high income that is off the charts, we therefor have set a limit of 150k to our plot.
+
+```{r}
+require(AER)
+
 NNobs <- length(dat_use$INCWAGE)
-# just so you can replicate and get same "random" choices
-set.seed(12345)
-# so something like just 1/10 as many obs
-graph_obs <- (runif(NNobs) < 0.1)
+set.seed(12345) 
+graph_obs <- (runif(NNobs) < 0.1) 
 dat_graph <-subset(dat_use,graph_obs)  
 
-plot(INCWAGE ~ jitter(AGE, factor = 2), pch = 16, col = rgb(0.5, 0.5, 0.5, alpha = 0.2), data = dat_graph)
-# ^^ that looks like crap since Wages are soooooooo skew!  So try to find some sensible ylim = c(0, ??)
-plot(INCWAGE ~ jitter(AGE, factor = 2), pch = 16, col = rgb(0.5, 0.5, 0.5, alpha = 0.2), ylim = c(0,150000), data = dat_graph)
-# discus what you see in this plot
+plot(INCWAGE ~ jitter(AGE, factor = 1), pch = 16, col = rgb(0.5, 0.5, 0.5, alpha = 0.2), ylim = c(0,150000), data = dat_graph)
+title(main = "Income Salary by Age", col.main = "blue")
 
-# change this line to fit your choices about explanatory variables
-to_be_predicted2 <- data.frame(AGE = 25:55, female = 1, AfAm = 0, Asian = 0, Amindian = 1, race_oth = 1, Hispanic = 1, educ_hs = 0, educ_somecoll = 0, educ_college = 1, educ_advdeg = 0)
+
+to_be_predicted2 <- data.frame(AGE = 25:55, AfAm = 0, Asian = 0, Amindian = 1, race_oth = 1, Hispanic = 1, educ_hs = 0, educ_somecoll = 0, educ_college = 1, educ_advdeg = 0)
+
 to_be_predicted2$yhat <- predict(model_temp1, newdata = to_be_predicted2)
 
 lines(yhat ~ AGE, data = to_be_predicted2)
 
-#the graph cannot be posted here but will be attached when I send the homework but as seen in the graph as the age increases the income wage also increases. I belives it is because as the expeirnce of each person increases, they are able to work in higher position which leads to the income wage increase. 
+```
+In Scatter plot "Income Salary by Age" we proceeded to create predicted values of Income based on age and certain races such as Amindian = 1, race_oth = 1, Hispanic = 1 as well as educ_college = 1 to create a line called Yhat
+This line shows that the values of income range between about 49099 and 88373, shown by the min and max of the below summary
+
+```{r}
+summary(to_be_predicted2$yhat)
+```
