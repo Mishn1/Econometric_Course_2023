@@ -1,0 +1,47 @@
+Homework 4
+GROUP: Mishal, Loius and Vanessa
+load("~/Desktop/R-studio/acs2017_ny (2)/acs2017_ny_data.RData")
+require(tidyverse)
+require(AER)
+install.packages('stargazer')
+require(stargazer)
+installed.packages()
+
+#filter/clean the data to certain factors
+use_varb <- (acs2017_ny$AGE >= 25) & (acs2017_ny$AGE <= 55) & (acs2017_ny$LABFORCE == 2) & (acs2017_ny$WKSWORK2 > 4) & (acs2017_ny$UHRSWORK >= 35)
+dat_use <- subset(acs2017_ny,use_varb)
+summary(dat_use)
+
+#factors that affect what you earn...salary earned in a year, regress on those values; tilde predictor variables
+#add degfield 
+model_temp1 <- lm(INCWAGE ~ AGE + female + AfAm + Asian + Amindian + race_oth + Hispanic + educ_hs + educ_somecoll + educ_college + educ_advdeg, data = dat_use)
+summary(model_temp1)
+
+# maybe get fancy, looks nicer
+#sum of var 1 vs var 2/3 (income ~ age/female/AfAm) is the predicted summary/income
+require(stargazer)
+stargazer(model_temp1, type = "text")
+
+model_temp2 <- lm(INCWAGE ~ DEGFIELD + female)
+#in nuclear, radiology, biologicalfield have the highest impact on income while women have a negative correlation
+
+# subset in order to plot...
+NNobs <- length(dat_use$INCWAGE)
+# just so you can replicate and get same "random" choices
+set.seed(12345)
+# so something like just 1/10 as many obs
+graph_obs <- (runif(NNobs) < 0.1)
+dat_graph <-subset(dat_use,graph_obs)  
+
+plot(INCWAGE ~ jitter(AGE, factor = 2), pch = 16, col = rgb(0.5, 0.5, 0.5, alpha = 0.2), data = dat_graph)
+# ^^ that looks like crap since Wages are soooooooo skew!  So try to find some sensible ylim = c(0, ??)
+plot(INCWAGE ~ jitter(AGE, factor = 2), pch = 16, col = rgb(0.5, 0.5, 0.5, alpha = 0.2), ylim = c(0,150000), data = dat_graph)
+# discus what you see in this plot
+
+# change this line to fit your choices about explanatory variables
+to_be_predicted2 <- data.frame(AGE = 25:55, female = 1, AfAm = 0, Asian = 0, Amindian = 1, race_oth = 1, Hispanic = 1, educ_hs = 0, educ_somecoll = 0, educ_college = 1, educ_advdeg = 0)
+to_be_predicted2$yhat <- predict(model_temp1, newdata = to_be_predicted2)
+
+lines(yhat ~ AGE, data = to_be_predicted2)
+
+#the graph cannot be posted here but will be attached when I send the homework but as seen in the graph as the age increases the income wage also increases. I belives it is because as the expeirnce of each person increases, they are able to work in higher position which leads to the income wage increase. 
